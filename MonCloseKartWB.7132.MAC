@@ -1,0 +1,232 @@
+MonCloseKartWB //Обзор пациенток, у которых карты закрывались вручную
+	;========================================================================================================================
+	/*!
+	*  \ingroup risar
+	*  \brief 
+	*  \author 
+	*  \file FILENAME
+	*/
+	;========================================================================================================================
+	DO HTTP^LIBART
+	DO @%KEY("REQ")
+	F  q:$TL=0  TRO
+	L
+	QUIT
+START
+	s IDS=$g(%KEY("IDS")),C=$C(250) i IDS="" &html<<script language='javascript'> window.close(); </script>> q
+	s uidREG=$e($g(^MNSNASTR("RGN1")),1,2)
+	s uidLPU=$g(^MLPU("KB"))
+	s PLZ=$p(%KEY("IDS"),"|",1)
+	s ADMIN=""
+	; -------------------------------
+	;if $g(^MNS("PLZ",5,PLZ))=5 s ADMIN=1
+	;if ($g(ADMIN)="")&($g(^MNS("PLZ",13,PLZ))="") &html<<script language='javascript'>alert('Выбранный Вами отчет доступен только кураторам.'); window.close(); </script>> q
+	; ----------------------------------
+	&html<<html><head>>
+	d redHtmlStyle^LIBSAP()
+	&html<<style>td{text-align:left;} .but {width:27px;height:24px;background-repeat:no-repeat;}</style>
+	<title>Обзор пациенток, у которых карты закрывались вручную</title>>
+	d Init
+	do jsCommon^library.html()
+	&html<
+	</HEAD>
+	<BODY onload='Init(document.ListView1);' scroll=no>
+	<Form name='frm' onKeydown='keydownForm();'>
+	<table style='width:100%;' border=1>
+	<tr>
+	 <td style='width:20%;'></td>
+	 <td style='width:12%;text-align:right;'><b>Период с</b></td>
+	 <td style='width:10%'>> do ELEMENT^DATEWB("dtbDay","dtbMonth","dtbYear",$h-30,1,,1) &html<</td>
+	 <td style='width:3%;text-align:center'><b>по</b></td>
+	 <td style='width:10%'>> do ELEMENT^DATEWB("dteDay","dteMonth","dteYear","",1,,1) &html<</td>
+	 <td style='width:25%;text-align:right;'><input name=count style='background-Color:#e3f1ff;width:2em' readonly><BUTTON class='mb-vw' onclick='Preview();'>Просмотр(F5)</BUTTON></td>
+	 <td style='width:20%;'></td>
+	</tr>
+	</table>
+	<table style='width:100%;height:89%;border:solid #69C 1px'>
+	<tr style='height:100%'>
+	 <td style='font:normal;'>> do htmlListView^library.html("ListView1", 1) &html<</td>
+	</tr>
+	</table>
+	<fieldset style='text-align:right;'>
+	<BUTTON onclick='View();'>Мед.карта</BUTTON>
+	<BUTTON onclick='Print();'>Печать(F6)</BUTTON>
+	<BUTTON class='mb-ex' onclick='window.close();'>Выход(Esc)</BUTTON>
+	</fieldset>
+	<INPUT TYPE='HIDDEN' NAME='PAR' ID='PAR' value=''>
+	<iframe name='hid'style='display:none;visibility:hidden' application=yes trusted></iframe>
+	</Form>
+	</BODY>
+	</HTML>
+	>
+	q
+Init
+	&html<<script language='javascript'>
+	function Init(obj){
+	obj.GridLines = true; obj.ColumnHeaders.Clear(); obj.ListItems.Clear(); obj.View = 3; obj.LabelEdit = 1;
+	with (obj.ColumnHeaders){
+		Add().Text="Дата закрытия"; Item(1).Width=100;
+		Add().Text="ФИО"; Item(2).Width=200;
+		Add().Text="Дата постан.на учет"; Item(3).Width=80;
+		Add().Text="ЛПУ, взявшее на учет"; Item(4).Width=190;
+		Add().Text="Врач, взявший на учет"; Item(5).Width=190;
+		Add().Text="К"; Item(6).Width=0;
+		Add().Text="dtC"; Item(7).Width=0;
+		Add().Text="kv"; Item(8).Width=0;
+		Add().Text="ot"; Item(9).Width=0;
+		Add().Text="kvOpen"; Item(10).Width=0;
+		}
+	FillLV();
+	}
+	
+</script>
+<script language='javascript'>
+function FillLV()
+	{
+	if  (hid.document.readyState != 'complete') { setTimeout("FillLV()",100) ; return;}
+	dtbDay=document.frm.dtbDay.value; dtbMonth=document.frm.dtbMonth.value;dtbYear=document.frm.dtbYear.value;
+	dteDay=document.frm.dteDay.value; dteMonth=document.frm.dteMonth.value;dteYear=document.frm.dteYear.value;
+	parent.hid.location='../scripts/mgwms32.dll?MGWCHD=<%=%KEY("MGWCHD")%>&MGWAPP=MonCloseKartWB&REQ=Kurator'+'&uidREG='+'<%=$g(uidREG)%>'+'&dtbDay='+dtbDay+'&dtbMonth='+dtbMonth+'&dtbYear='+dtbYear+'&dteDay='+dteDay+'&dteMonth='+dteMonth+'&dteYear='+dteYear;
+	window.focus(); document.ListView1.focus();
+	}
+ 
+function keydownForm(){
+		switch(window.event.keyCode){
+		case 27:
+			window.close();
+			break;
+		case 116:
+			Preview();
+			break;
+		}
+	}
+function View(){
+	if (document.ListView1.ListItems.Count<1){return;}
+	var edit=1; 
+	k=document.ListView1.SelectedItem.SubItems(5);
+	ot=document.ListView1.SelectedItem.SubItems(8);
+	dt=document.ListView1.SelectedItem.SubItems(6);
+	kv=document.ListView1.SelectedItem.SubItems(9);
+	result=window.showModalDialog('../scripts/mgwms32.dll?MGWCHD=<%=%KEY("MGWCHD")%>&MGWAPP=MonRegPacWB&REQ=START'+'&IDS='+'<%=IDS%>'+'&Glob='+'<%=$g(Glob)%>'+'&Title='+'<%=$g(Title)%>'+'&edit='+edit+'&uidREG='+'<%=$g(uidREG)%>'+'&uidLPU='+'<%=$g(uidLPU)%>'+'&OT='+ot+'&K='+k+'&KV='+kv+'&DT='+dt,[2],"resizable=no; status=no; scroll=no; dialogHeight:600px; dialogWidth:800px");
+	FillLV();
+	window.focus();
+	}
+function Preview(){
+	dtbDay=document.frm.dtbDay.value; dtbMonth=document.frm.dtbMonth.value;dtbYear=document.frm.dtbYear.value;
+	dteDay=document.frm.dteDay.value; dteMonth=document.frm.dteMonth.value;dteYear=document.frm.dteYear.value;
+	parent.hid.location='../scripts/mgwms32.dll?MGWCHD=<%=%KEY("MGWCHD")%>&MGWAPP=MonCloseKartWB&REQ=Kurator'+'&uidREG='+'<%=$g(uidREG)%>'+'&dtbDay='+dtbDay+'&dtbMonth='+dtbMonth+'&dtbYear='+dtbYear+'&dteDay='+dteDay+'&dteMonth='+dteMonth+'&dteYear='+dteYear+'&IDS='+'<%=$g(IDS)%>';
+	}
+function Print(){
+	if (document.ListView1.ListItems.Count<1){return;}
+	try{with(new ActiveXObject("Word.Application")){DisplayAlerts=false;Visible=true;
+	var l=document.ListView1;
+	with(Documents.Add(('<%=$$PathTemplates^library.mix()%>'+'MonCloseKart.dot'))){
+	with(Documents(1).Tables.Item(1)){for (i=0; i<l.ListItems.Count; i++){
+	Cell(Rows.Count+1+i,1).Range.Text=l.ListItems(i+1).Text;
+	Cell(Rows.Count+1+i,2).Range.Text=l.ListItems(i+1).SubItems(1);
+	Cell(Rows.Count+1+i,3).Range.Text=l.ListItems(i+1).SubItems(2);
+	Cell(Rows.Count+1+i,4).Range.Text=l.ListItems(i+1).SubItems(3);
+	Cell(Rows.Count+1+i,5).Range.Text=l.ListItems(i+1).SubItems(4);
+	if (i+1<l.ListItems.Count){Rows.Add()}
+	}}
+	if (Bookmarks.Exists("TIME")==true){Bookmarks("TIME").Range.Text='<%=$ZDATETIME($H,3)%>';}
+	var FILT='';
+	if (frm.dtbDay.value!='') {
+		if (Bookmarks.Exists("PERIOD")==true){Bookmarks("PERIOD").Range.Text='период с '+frm.dtbDay.value+'.'+frm.dtbMonth.value+'.'+frm.dtbYear.value+' по '+frm.dteDay.value+'.'+frm.dteMonth.value+'.'+frm.dteYear.value;}
+	}else {if (Bookmarks.Exists("PERIOD")==true){Bookmarks("PERIOD").Range.Text='на текущий момент';}}
+	if (Bookmarks.Exists("FILT")==true){Bookmarks("FILT").Range.Text=FILT;}
+	}Visible = true;}} catch (e) {alert('Вывод прерван');}}
+	</script>
+	<SCRIPT language='javascript'FOR='ListView1'EVENT='onkeydown'>
+	if (window.event.keyCode==27){window.close();return;}
+	</script>
+	<SCRIPT language='javascript' FOR='ListView1' EVENT='DblClick()'>
+	if (document.ListView1.ListItems.Count<1){return;}
+	var edit=1; 
+	k=document.ListView1.SelectedItem.SubItems(5);
+	ot=document.ListView1.SelectedItem.SubItems(8);
+	dt=document.ListView1.SelectedItem.SubItems(6);
+	kv=document.ListView1.SelectedItem.SubItems(9);
+	result=window.showModalDialog('../scripts/mgwms32.dll?MGWCHD=<%=%KEY("MGWCHD")%>&MGWAPP=MonRegPacWB&REQ=START'+'&IDS='+'<%=IDS%>'+'&Glob='+'<%=$g(Glob)%>'+'&Title='+'<%=$g(Title)%>'+'&edit='+edit+'&uidREG='+'<%=$g(uidREG)%>'+'&uidLPU='+'<%=$g(uidLPU)%>'+'&OT='+ot+'&K='+k+'&KV='+kv+'&DT='+dt,[2],"resizable=no; status=no; scroll=no; dialogHeight:600px; dialogWidth:800px");
+	FillLV();
+	window.focus();
+	</script>
+	>
+	q
+Kurator
+	; Глобаль: Пациенты куратора
+	; s $p(getH,C,8)=DTCLOSE
+	; ^MONHistory(DTOPEN_C_uidOT_C_uidKVU_C_K,2)=getH
+	; s ^MONHistory(DTOPEN_C_uidOT_C_uidKVU_C_K,2,$h)=getH
+	; ^MONKV(UIDKV,”NOW”, K)=dtOpen•UidOT·kvOpen пациентки на текущий момент
+	s IDS=$g(%KEY("IDS"))
+	s (dtEnd,dtStart,par)="",C=$C(250)
+	s uidREG=$g(%KEY("uidREG"))
+	s dtbDay=$g(%KEY("dtbDay"))
+	s dtbMonth=$g(%KEY("dtbMonth"))
+	s dtbYear=$g(%KEY("dtbYear"))
+	s dteDay=$g(%KEY("dteDay"))
+	s dteMonth=$g(%KEY("dteMonth"))
+	s dteYear=$g(%KEY("dteYear"))
+	i (dtbDay'=""){
+		s dtStart=dtbYear_dtbMonth_dtbDay
+		s dtStart=$$UDC^MonRepLibWB(dtStart,26)
+		}
+	i (dteDay'=""){
+		s dtEnd=dteYear_dteMonth_dteDay
+		s dtEnd=$$UDC^MonRepLibWB(dtEnd,26)
+		}
+	w "<script language='javascript'>parent.document.ListView1.ListItems.Clear();"
+	s count=0
+	s (o,ot,kvOpen,k,sostk)=""
+	s knsk=""
+	for {s knsk=$o(^MONHistory(knsk)) q:knsk=""
+		s getH=$g(^MONHistory(knsk,2))
+		if getH="" {continue}
+		s dtclose=$p(getH,C,8)
+		s lpuu=$$LPUName^LIBNSKWB($p(getH,C,3))
+		s dtHor=$o(^MONHistory(knsk,2,""),-1)
+		i (dtHor'=""){s dtclose=$p($g(^MONHistory(knsk,2,dtHor)),C,8)}
+		if dtclose="" {continue}
+		//Фильтр - дата проверки
+		i dtStart'=""
+		 { i +dtclose<dtStart {continue}
+		 }
+		i dtEnd'=""
+		 { i +dtclose>dtEnd {continue}
+		 }
+		s dtnsk=$p(knsk,C,1)
+		s ot=$p(knsk,C,2)
+		s kvOpen=$p(knsk,C,3)
+		s nameOt=$$OTName^LIBNSKWB(ot)
+		s k=$p(knsk,C,4)
+		s vruch=$$KVNameS^LIBNSKWB(kvOpen)
+		s Fm=$ZCVT($$d2w^LIBART($$Fm^LIBMBPWB(k)),"O","JS")
+		s ad=$$AdFull^LIBMBPWB(k)
+		s dtCLOSE=$$UDC^MonRepLibWB(dtclose,10)
+		s dtOpen=$$DateTr^LIBART(dtnsk)
+		s dtB=$g(dtOpen)_" 00:00"
+		s dtB=""
+		s dtEH=""
+		s dtOh=dtnsk
+		s sign=""
+		do FillL
+	}
+	w "parent.frm.count.value='"_count_"';"
+	w "</script>"
+	q
+FillL
+	s count=count+1,color="",risk=""
+	w "obj=parent.document.ListView1.ListItems.Add();"
+	w "obj.Text='"_$g(dtCLOSE)_"';"
+	w "obj.SubItems(1)='"_$g(Fm)_"';"
+	w "obj.SubItems(2)='"_$g(dtOpen)_"';"
+	w "obj.SubItems(3)='"_$g(lpuu)_"';"
+	w "obj.SubItems(4)='"_$g(vruch)_"';"
+	w "obj.SubItems(5)='"_$g(k)_"';"
+	w "obj.SubItems(6)='"_$g(dtOh)_"';"
+	w "obj.SubItems(7)='"_$g(uidKV)_"';"
+	w "obj.SubItems(8)='"_$g(ot)_"';"
+	w "obj.SubItems(9)='"_$g(kvOpen)_"';"
+	q
+ 
